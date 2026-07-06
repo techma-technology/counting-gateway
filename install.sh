@@ -56,6 +56,8 @@ if [ ! -f "$INSTALL_ROOT/data/config.json" ]; then
 fi
 
 # 5. systemd service (no Node dependency — the binary is self-contained).
+#    Panel password uses the shared default ('techma'); the user changes it from
+#    the panel (stored on the device) and can reset it via the Scanner app.
 cat > /etc/systemd/system/techma-gateway.service <<UNIT
 [Unit]
 Description=Techma Counting Gateway
@@ -87,6 +89,10 @@ systemctl daemon-reload
 systemctl enable --now techma-gateway
 
 IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
+PORT_SUFFIX=""; [ "$LOCAL_PORT" != "80" ] && PORT_SUFFIX=":$LOCAL_PORT"
 echo
-echo "== Terpasang: Techma Gateway v$VERSION (binary mandiri) =="
-echo "Panel admin lokal: http://${IP:-<ip-box>}:$LOCAL_PORT"
+echo "======================================================================"
+echo " Terpasang: Techma Gateway v$VERSION ($ARCH, binary mandiri)"
+echo " Panel admin : http://${IP:-<ip-box>}${PORT_SUFFIX}"
+echo " Password default: techma  (ubah dari panel; reset via aplikasi Scanner)"
+echo "======================================================================"
