@@ -12,17 +12,23 @@ set -euo pipefail
 
 INSTALL_ROOT="${INSTALL_ROOT:-/opt/techma-gateway}"
 MANIFEST_URL="${MANIFEST_URL:-https://raw.githubusercontent.com/techma-technology/counting-gateway/main/latest.json}"
-LOCAL_PORT="${LOCAL_PORT:-4610}"
+LOCAL_PORT="${LOCAL_PORT:-80}"          # dedicated appliance → serve the panel on :80
+ARCH="$(uname -m)"                       # x86_64 | aarch64
 
-echo "== Techma Gateway installer =="
+echo "== Techma Gateway installer (arch: $ARCH) =="
 [ "$(id -u)" -eq 0 ] || { echo "Jalankan sebagai root (sudo)."; exit 1; }
 command -v curl >/dev/null || { apt-get update && apt-get install -y curl; }
 
-# 1. Read the manifest (pick the tarball for this architecture if provided).
+# 1. Read the manifest, then pick the tarball whose filename matches THIS arch.
 TMP="$(mktemp)"
 curl -fsSL "$MANIFEST_URL" -o "$TMP"
 VERSION="$(grep -oE '"version"[^,]*' "$TMP" | head -1 | grep -oE '[0-9][^"]*')"
-URL="$(grep -oE '"url"[^,]*' "$TMP" | head -1 | sed -E 's/.*"url"\s*:\s*"([^"]+)".*/\1/')"
+URL="$(grep -oE "https://[^\"]+${ARCH}[^\"]*\.tar\.gz" "$TMP" | head -1)"
+# fallback to the top-level url only if no arch-specific asset is listed
+[ -n "$URL" ] || URL="$(grep -oE '"url"[[:space:]]*:[[:space:]]*"[^"]+"' "$TMP" | head -1 | sed -E 's/.*"([^"]+)".*/\1/')"
+if [ -z "$URL" ]; then
+  echo "❌ Tidak ada paket untuk arsitektur '$ARCH' di manifest ($MANIFEST_URL)."; exit 1
+fi
 echo "Versi terbaru: v$VERSION"
 
 # 2. Download + extract the self-contained binary release.
