@@ -11,7 +11,8 @@
 set -euo pipefail
 
 INSTALL_ROOT="${INSTALL_ROOT:-/opt/techma-gateway}"
-MANIFEST_URL="${MANIFEST_URL:-https://raw.githubusercontent.com/techma-technology/counting-gateway/main/latest.json}"
+RELEASE_REPO="${RELEASE_REPO:-techma-technology/counting-gateway}"
+MANIFEST_URL="${MANIFEST_URL:-https://raw.githubusercontent.com/${RELEASE_REPO}/main/latest.json}"
 LOCAL_PORT="${LOCAL_PORT:-80}"          # dedicated appliance → serve the panel on :80
 ARCH="$(uname -m)"                       # x86_64 | aarch64
 
@@ -19,15 +20,38 @@ echo "== Techma Gateway installer (arch: $ARCH) =="
 [ "$(id -u)" -eq 0 ] || { echo "Jalankan sebagai root (sudo)."; exit 1; }
 command -v curl >/dev/null || { apt-get update && apt-get install -y curl; }
 
-# 1. Read the manifest, then pick the tarball whose filename matches THIS arch.
-TMP="$(mktemp)"
-curl -fsSL "$MANIFEST_URL" -o "$TMP"
-VERSION="$(grep -oE '"version"[^,]*' "$TMP" | head -1 | grep -oE '[0-9][^"]*')"
-URL="$(grep -oE "https://[^\"]+${ARCH}[^\"]*\.tar\.gz" "$TMP" | head -1)"
-# fallback to the top-level url only if no arch-specific asset is listed
-[ -n "$URL" ] || URL="$(grep -oE '"url"[[:space:]]*:[[:space:]]*"[^"]+"' "$TMP" | head -1 | sed -E 's/.*"([^"]+)".*/\1/')"
+# curl with a User-Agent + retries. raw.githubusercontent.com rate-limits (429);
+# a UA + backoff gets past transient throttling.
+fetch() {
+  local url="$1" i out
+  for i in 1 2 3 4; do
+    if out="$(curl -fsSL -A 'techma-gateway-installer' "$url" 2>/dev/null)"; then
+      printf '%s' "$out"; return 0
+    fi
+    sleep $((i * 2))
+  done
+  return 1
+}
+
+# 1. Resolve the version + the arch tarball URL. Try the manifest first; if
+#    raw.githubusercontent is rate-limiting (429), fall back to the GitHub
+#    Releases API (api.github.com — a different host with its own limits).
+VERSION=""; URL=""
+if M="$(fetch "$MANIFEST_URL")"; then
+  VERSION="$(printf '%s' "$M" | grep -oE '"version"[^,]*' | head -1 | grep -oE '[0-9][^"]*')"
+  URL="$(printf '%s' "$M" | grep -oE "https://[^\"]+${ARCH}[^\"]*\.tar\.gz" | head -1)"
+  [ -n "$URL" ] || URL="$(printf '%s' "$M" | grep -oE '"url"[[:space:]]*:[[:space:]]*"[^"]+"' | head -1 | sed -E 's/.*"([^"]+)".*/\1/')"
+fi
 if [ -z "$URL" ]; then
-  echo "❌ Tidak ada paket untuk arsitektur '$ARCH' di manifest ($MANIFEST_URL)."; exit 1
+  echo "Manifest tidak terjangkau (rate-limit?) — mencoba GitHub Releases API…"
+  if R="$(fetch "https://api.github.com/repos/${RELEASE_REPO}/releases/latest")"; then
+    VERSION="$(printf '%s' "$R" | grep -oE '"tag_name":[[:space:]]*"[^"]*"' | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')"
+    URL="$(printf '%s' "$R" | grep -oE "https://[^\"]+${ARCH}[^\"]*\.tar\.gz" | head -1)"
+  fi
+fi
+if [ -z "$URL" ]; then
+  echo "❌ Gagal mengambil info rilis untuk '$ARCH' (kemungkinan 429 dari GitHub)."
+  echo "   Tunggu beberapa menit lalu ulangi perintah install."; exit 1
 fi
 echo "Versi terbaru: v$VERSION"
 
