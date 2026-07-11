@@ -1,17 +1,17 @@
 {
-  "version": "2.1.5",
+  "version": "2.1.6",
   "channel": "stable",
-  "url": "https://github.com/techma-technology/counting-gateway/releases/download/gateway-v2.1.5/techma-gateway-2.1.5-x86_64.tar.gz",
-  "sha256": "47ee27a57a1c3b46e160d4989a5ff56961a56bdb053aac7e5ddcf86949ba1d45",
+  "url": "https://github.com/techma-technology/counting-gateway/releases/download/gateway-v2.1.6/techma-gateway-2.1.6-x86_64.tar.gz",
+  "sha256": "fd3158fe86e20d828f8cb2a8fd7486748314f6e1203af751762d59f712666978",
   "assets": {
     "x64": {
-      "url": "https://github.com/techma-technology/counting-gateway/releases/download/gateway-v2.1.5/techma-gateway-2.1.5-x86_64.tar.gz",
-      "sha256": "47ee27a57a1c3b46e160d4989a5ff56961a56bdb053aac7e5ddcf86949ba1d45"
+      "url": "https://github.com/techma-technology/counting-gateway/releases/download/gateway-v2.1.6/techma-gateway-2.1.6-x86_64.tar.gz",
+      "sha256": "fd3158fe86e20d828f8cb2a8fd7486748314f6e1203af751762d59f712666978"
     },
     "arm64": {
-      "url": "https://github.com/techma-technology/counting-gateway/releases/download/gateway-v2.1.5/techma-gateway-2.1.5-aarch64.tar.gz",
-      "sha256": "34b8eb2231d262d94cd16239c9598617d625771f3f92275e49e692b96ee08373"
+      "url": "https://github.com/techma-technology/counting-gateway/releases/download/gateway-v2.1.6/techma-gateway-2.1.6-aarch64.tar.gz",
+      "sha256": "33c7c0eddd26881b25334f2ddcc95a4e76615dbc144abf57f8e28d1f857fdd68"
     }
   },
-  "notes": "Techma Gateway v2.1.5 (stable)"
+  "notes": "Techma Gateway v2.1.6 (stable)"
 }
